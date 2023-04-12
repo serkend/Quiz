@@ -1,6 +1,7 @@
 package com.multicategory.uniquequiz.ui.screens.quiz_screen.viewmodel
 
 import android.text.Html
+import android.util.Log
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.multicategory.uniquequiz.data.network.model.Result
 import com.multicategory.uniquequiz.ui.screens.entities.Difficulty
+import com.multicategory.uniquequiz.ui.screens.quiz_screen.states.QuestionsState
 import com.multicategory.uniquequiz.ui.screens.quiz_screen.states.QuizState
 import com.multicategory.uniquequiz.ui.utils.AMOUNT_QUESTIONS
 import kotlinx.coroutines.launch
@@ -25,38 +27,72 @@ class QuizViewModel @Inject constructor(private val repository: QuizNetworkRepos
         MutableStateFlow(QuizState.Loading)
     val quizState = _quizState.asStateFlow()
 
-    private val _correctAnswers = mutableStateOf(0)
-    val correctAnswers: State<Int> = _correctAnswers
+    private var results: List<Result> = emptyList()
 
-    var counter = mutableStateOf(0)
-
-    private var _questions = MutableStateFlow(emptyList<List<String>>())
-    var questions = _questions.asStateFlow()
-
-//    fun getCurrentQuestion(questions: List<Result>): Result {
-    // val currentQuestion = questions[counter]
-    //_counter++
-    // return currentQuestion
-//    }
+    private val _questionState: MutableStateFlow<QuestionsState> =
+        MutableStateFlow(
+            QuestionsState(
+                showResults = false,
+                clickedIndex = 0,
+                counter = 0,
+                questions = emptyList(),
+                result = null,
+                finished = false,
+                correctAnswers = 0
+            )
+        )
+    val questionState = _questionState.asStateFlow()
 
     fun nextQuestion() {
-        if(counter.value < AMOUNT_QUESTIONS) {
-        //    _questions.value = getShuffledList( quizState. )
-            counter.value++
+        if (!checkIfLastQuestion()) {
+            Log.e("TAG", "nextQuestion: ${questionState.value.counter}")
+            getShuffledList(results[_questionState.value.counter])
+            _questionState.value =
+                _questionState.value.copy(
+                    counter = _questionState.value.counter + 1,
+                    showResults = false
+                )
+            if (checkIfLastQuestion()) {
+                _questionState.value =
+                    _questionState.value.copy(
+                        finished = true
+                    )
+            }
         }
     }
 
-    fun getShuffledList(quizQuestion: Result): List<String> {
+    private fun checkIfLastQuestion(): Boolean {
+        if (_questionState.value.counter == AMOUNT_QUESTIONS) {
+            return true
+        }
+        return false
+    }
+
+    private fun getShuffledList(quizQuestion: Result) {
         val answers = quizQuestion.incorrect_answers.toMutableList()
         answers.add(quizQuestion.correct_answer)
         answers.shuffle()
-        return answers
+        val parsedQuestions = answers.map { parseQuestion(it) }
+        val parsedTitleQuestion = quizQuestion.copy(question = parseQuestion(quizQuestion.question))
+        _questionState.value =
+            _questionState.value.copy(questions = parsedQuestions, result = parsedTitleQuestion)
     }
 
-    fun checkIfAnswerIsCorrect(answer: String, correctAnswer: String) {
-        if (answer == correctAnswer) {
-            _correctAnswers.value++
+    fun onClickButton(index: Int) {
+        if (!questionState.value.showResults) {
+            _questionState.value =
+                _questionState.value.copy(showResults = true, clickedIndex = index)
+            checkIfAnswerIsCorrect(index)
         }
+    }
+
+    private fun checkIfAnswerIsCorrect(index: Int): Boolean {
+        if (questionState.value.questions[index] == questionState.value.result?.correct_answer) {
+            _questionState.value =
+                _questionState.value.copy(correctAnswers = _questionState.value.correctAnswers + 1)
+            return true
+        }
+        return false
     }
 
     fun getQuiz(difficulty: String, category: String) {
@@ -65,6 +101,8 @@ class QuizViewModel @Inject constructor(private val repository: QuizNetworkRepos
                 when (response) {
                     is ResponseStatus.SuccessResponse -> {
                         _quizState.value = QuizState.Success(response.data)
+                        results = response.data.results
+                        nextQuestion()
                     }
                     is ResponseStatus.Loading -> {
                         _quizState.value = QuizState.Loading
@@ -75,6 +113,18 @@ class QuizViewModel @Inject constructor(private val repository: QuizNetworkRepos
                 }
             }
         }
+    }
+
+    fun resetQuiz() {
+        _questionState.value = QuestionsState(
+            showResults = false,
+            clickedIndex = 0,
+            counter = 0,
+            questions = emptyList(),
+            result = null,
+            finished = false,
+            correctAnswers = 0
+        )
     }
 
     fun parseQuestion(quizQuestion: String): String =

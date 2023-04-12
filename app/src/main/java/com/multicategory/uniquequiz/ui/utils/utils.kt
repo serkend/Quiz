@@ -20,7 +20,7 @@ import com.multicategory.uniquequiz.ui.theme.ShimmerGradient_1
 import com.multicategory.uniquequiz.ui.theme.ShimmerGradient_2
 import com.multicategory.uniquequiz.ui.theme.ShimmerGradient_3
 
-val AMOUNT_QUESTIONS = 5
+const val AMOUNT_QUESTIONS = 5
 
 fun Modifier.shimmerEffect(): Modifier = composed {
     var size by remember { mutableStateOf(IntSize.Zero) }
