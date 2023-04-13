@@ -1,7 +1,7 @@
 package com.multicategory.uniquequiz.ui.screens.quiz_screen.states
 
-sealed class QuizState<out T> {
-    object Loading : QuizState<Nothing>()
-    data class Success<out T>(val data: T) : QuizState<T>()
-    data class Error(val error: String) : QuizState<Nothing>()
+sealed class CategoryState<out T> {
+    object Loading : CategoryState<Nothing>()
+    data class Success<out T>(val data: T) : CategoryState<T>()
+    data class Error(val error: String) : CategoryState<Nothing>()
 }

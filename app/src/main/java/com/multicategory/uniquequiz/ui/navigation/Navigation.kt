@@ -14,8 +14,10 @@ import androidx.navigation.navArgument
 import com.multicategory.uniquequiz.ui.navigation.Screens.Companion.CATEGORY
 import com.multicategory.uniquequiz.ui.navigation.Screens.Companion.CATEGORY_ID
 import com.multicategory.uniquequiz.ui.navigation.Screens.Companion.DIFFICULTY
+import com.multicategory.uniquequiz.ui.navigation.Screens.Companion.SCORE
 import com.multicategory.uniquequiz.ui.screens.category_screen.CategoryScreen
 import com.multicategory.uniquequiz.ui.screens.entities.Difficulty
+import com.multicategory.uniquequiz.ui.screens.finish_screen.FinishScreen
 import com.multicategory.uniquequiz.ui.screens.quiz_screen.QuizScreen
 
 @Composable
@@ -44,9 +46,22 @@ fun Navigation() {
         ) { entry ->
             QuizScreen(
                 category = entry.arguments?.getString(CATEGORY) ?: "",
+                navController = navController,
                 category_id = entry.arguments?.getString(CATEGORY_ID) ?: "",
                 scaffoldState = scaffoldState,
                 difficulty = entry.arguments?.getString(DIFFICULTY) ?: Difficulty.EASY.value
+            )
+        }
+        composable(Screens.FinishScreen.withArgs("{$SCORE}"),
+            arguments = listOf(
+                navArgument(SCORE) {
+                    type = NavType.StringType
+                }
+            )
+        ) { entry ->
+            FinishScreen(
+                navController = navController,
+                score = entry.arguments?.getString(SCORE) ?: "0"
             )
         }
     }

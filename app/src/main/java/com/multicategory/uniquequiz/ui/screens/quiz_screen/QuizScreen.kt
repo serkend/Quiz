@@ -2,6 +2,8 @@ package com.multicategory.uniquequiz.ui.screens.quiz_screen
 
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -12,19 +14,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.multicategory.uniquequiz.R
 import com.multicategory.uniquequiz.data.network.model.QuizModel
 import com.multicategory.uniquequiz.ui.components.CustomSnackbar
-import com.multicategory.uniquequiz.ui.screens.category_screen.CategoriesContent
-import com.multicategory.uniquequiz.ui.screens.category_screen.ShimmerItem
 import com.multicategory.uniquequiz.ui.screens.quiz_screen.states.QuizState
 import com.multicategory.uniquequiz.ui.screens.quiz_screen.viewmodel.QuizViewModel
 import com.multicategory.uniquequiz.data.network.model.Result
-import com.multicategory.uniquequiz.ui.screens.entities.Difficulty
+import com.multicategory.uniquequiz.ui.navigation.Screens
+import com.multicategory.uniquequiz.ui.utils.AMOUNT_QUESTIONS
 
 @Composable
 fun QuizScreen(
     category: String,
+    navController: NavController,
     category_id: String,
     difficulty: String,
     scaffoldState: ScaffoldState,
@@ -34,11 +37,10 @@ fun QuizScreen(
         Log.e("TAG", "QuizScreen: $category_id $difficulty")
         viewModel.getQuiz(category = category_id, difficulty = difficulty)
     }
-    val state = viewModel.quizState.collectAsState().value
 
-    when (state) {
+    when (val state = viewModel.quizState.collectAsState().value) {
         is QuizState.Success -> {
-            QuizContent(quiz = state.data, viewModel = viewModel)
+            QuizContent(quiz = state.data, viewModel = viewModel, navController = navController)
         }
         is QuizState.Error -> {
 //            QuizContent(
@@ -55,31 +57,25 @@ fun QuizScreen(
         QuizState.Loading -> {
 
         }
+        else -> {}
     }
 }
 
 @Composable
-fun QuizContent(quiz: QuizModel, viewModel: QuizViewModel) {
-    val counter by viewModel.counter
-    var questions = viewModel.getShuffledList(quiz.results[counter])
+fun QuizContent(quiz: QuizModel, viewModel: QuizViewModel, navController: NavController) {
+//    var currentQuestionNumber = viewModel.counter
     QuizItem(
-        result = quiz.results[counter],
-        questions = questions,
-        category = quiz.results[counter].category
-    ) {
-        viewModel.nextQuestion()
-    }
+        viewModel = viewModel,
+        navController
+    )
 }
 
 @Composable
 fun QuizItem(
-    result: Result,
-    questions: List<String>,
-    category: String,
-    onNextQuestion: () -> Unit
+    viewModel: QuizViewModel,
+    navController: NavController
 ) {
-    var btnVisibility by remember { mutableStateOf(false) }
-
+    val questionState = viewModel.questionState.collectAsState().value
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -89,18 +85,28 @@ fun QuizItem(
     ) {
         Box(modifier = Modifier.weight(0.1f), contentAlignment = Alignment.Center) {
             Text(
-                text = category,
-                style = MaterialTheme.typography.h2,
+                text = questionState.result?.category ?: "Some Category",
+                style = MaterialTheme.typography.h1,
                 textAlign = TextAlign.Center
             )
         }
         Box(modifier = Modifier.weight(0.5f), contentAlignment = Alignment.Center) {
             Text(
-                text = result.question,
+                text = questionState.result?.question ?: "Some Question",
                 style = MaterialTheme.typography.h2,
                 textAlign = TextAlign.Center
             )
         }
+        Text(
+            modifier = Modifier.weight(0.1f),
+            text = stringResource(
+                R.string.question_counter,
+                questionState.counter,
+                AMOUNT_QUESTIONS
+            ),
+            style = MaterialTheme.typography.body2,
+            color = Color.Gray
+        )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             modifier = Modifier.weight(0.1f),
@@ -108,17 +114,27 @@ fun QuizItem(
             style = MaterialTheme.typography.body2,
             color = Color.Gray
         )
-        Spacer(modifier = Modifier.height(12.dp))
         Column(
             modifier = Modifier.weight(1.5f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)
         ) {
-            questions.forEach { answer ->
+            questionState.questions.forEachIndexed { index, answer ->
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
-                    onClick = { btnVisibility = true }
+                    onClick = {
+                        viewModel.onClickButton(index)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor =
+                        if (questionState.showResults && answer == questionState.result?.correct_answer) Color.Green
+                        else if (questionState.showResults && answer != questionState.result?.correct_answer
+                            && questionState.clickedIndex == index
+                        ) Color.Red
+                        else MaterialTheme.colors.surface
+                    )
                 ) {
+
                     Text(
                         modifier = Modifier.padding(16.dp),
                         text = answer,
@@ -128,7 +144,8 @@ fun QuizItem(
                 }
             }
         }
-        AnimatedVisibility(visible = btnVisibility) {
+
+        AnimatedVisibility(visible = questionState.showResults) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -139,13 +156,19 @@ fun QuizItem(
                     modifier = Modifier.fillMaxWidth(0.6f),
                     shape = MaterialTheme.shapes.medium,
                     onClick = {
-                        btnVisibility = false
-                        onNextQuestion()
+                        if (questionState.finished) {
+                            navController.navigate(Screens.FinishScreen.withArgs(questionState.correctAnswers.toString()))
+                            viewModel.resetQuiz()
+                        } else {
+                            viewModel.nextQuestion()
+                        }
                     }
                 ) {
                     Text(
                         modifier = Modifier.padding(12.dp),
-                        text = "Next",
+                        text =  if (questionState.finished) stringResource(R.string.finish) else stringResource(
+                            R.string.next
+                        ),
                         style = MaterialTheme.typography.h2,
                         color = MaterialTheme.colors.onSurface
                     )
@@ -154,37 +177,4 @@ fun QuizItem(
         }
     }
 }
-
-//@Composable
-//fun QuizShimmer() {
-//    // var selectedDifficulty by remember { mutableStateOf(Difficulty.EASY) }
-//    Card(modifier = Modifier.fillMaxWidth()) {
-//        Column(
-//            modifier = Modifier
-//                .padding(12.dp)
-//        ) {
-//            Spacer(
-//                modifier = Modifier
-//                    .fillMaxWidth(0.4f)
-//                    .height(16.dp)
-//                    .shimmerEffect()
-//            )
-//            Spacer(modifier = Modifier.height(12.dp))
-//            Spacer(
-//                modifier = Modifier
-//                    .fillMaxWidth(0.5f)
-//                    .height(16.dp)
-//                    .shimmerEffect()
-//
-//            )
-//            Spacer(modifier = Modifier.height(12.dp))
-//            Spacer(
-//                modifier = Modifier
-//                    .fillMaxWidth(0.6f)
-//                    .height(16.dp)
-//                    .shimmerEffect()
-//            )
-//        }
-//    }
-//}
 

@@ -13,6 +13,11 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp
     ),
+    h1 = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight(700),
+        fontSize = 26.sp
+    ),
     h2 = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight(500),
