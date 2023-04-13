@@ -43,9 +43,8 @@ fun CategoryScreen(
     scaffoldState: ScaffoldState,
     viewModel: CategoryViewModel = hiltViewModel()
 ) {
-    val state = viewModel.categoriesState.collectAsState().value
 
-    when (state) {
+    when (val state = viewModel.categoriesState.collectAsState().value) {
         is CategoryState.Success -> {
             CategoriesContent(categories = state.data, navController = navController)
         }
