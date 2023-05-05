@@ -1,5 +1,6 @@
 package com.multicategory.uniquequiz.ui.screens.category_screen
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -20,8 +21,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.datastore.core.DataStore
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.multicategory.uniquequiz.R
@@ -35,7 +38,11 @@ import com.multicategory.uniquequiz.ui.screens.category_screen.viewmodel.Categor
 import com.multicategory.uniquequiz.ui.theme.ShimmerGradient_1
 import com.multicategory.uniquequiz.ui.theme.ShimmerGradient_2
 import com.multicategory.uniquequiz.ui.theme.ShimmerGradient_3
+import com.multicategory.uniquequiz.ui.utils.AMOUNT_QUESTIONS
 import com.multicategory.uniquequiz.ui.utils.shimmerEffect
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import java.util.prefs.Preferences
 
 @Composable
 fun CategoryScreen(
@@ -43,10 +50,9 @@ fun CategoryScreen(
     scaffoldState: ScaffoldState,
     viewModel: CategoryViewModel = hiltViewModel()
 ) {
-
     when (val state = viewModel.categoriesState.collectAsState().value) {
         is CategoryState.Success -> {
-            CategoriesContent(categories = state.data, navController = navController)
+            CategoriesContent(categories = state.data, navController = navController, viewModel)
         }
         is CategoryState.Error -> {
             ShimmerContent()
@@ -64,13 +70,26 @@ fun CategoryScreen(
 }
 
 @Composable
-fun CategoriesContent(categories: List<TriviaCategory>, navController: NavController) {
+fun CategoriesContent(
+    categories: List<TriviaCategory>,
+    navController: NavController,
+    viewModel: CategoryViewModel
+) {
     LazyColumn(
         modifier = Modifier.padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(categories) { category ->
-            CategoryItem(category = category, navController)
+            var score by remember { mutableStateOf("0/$AMOUNT_QUESTIONS")}
+            LaunchedEffect(Unit) {
+                launch {
+                    viewModel.getCachedScore(category.name).collect {
+                        Log.e("TAG", "flow: ${it}")
+                        score = "${it ?: 0}/$AMOUNT_QUESTIONS"
+                    }
+                }
+            }
+            CategoryItem(category = category, navController, score)
         }
     }
 
@@ -91,49 +110,54 @@ fun ShimmerContent() {
 }
 
 @Composable
-fun CategoryItem(category: TriviaCategory, navController: NavController) {
+fun CategoryItem(category: TriviaCategory, navController: NavController, curScore: String) {
     var selectedDifficulty by remember { mutableStateOf(Difficulty.EASY) }
     Card(modifier = Modifier
         .fillMaxWidth()
         .clickable {
             navController.navigate(
                 Screens.QuizScreen.withArgs(
-                    category.name.lowercase(),
+                    category.name,
                     category.id.toString(),
                     selectedDifficulty.value
                 )
             )
         }) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = category.name, style = MaterialTheme.typography.h2)
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.choose_difficulty),
-                style = MaterialTheme.typography.body2,
-                color = Color.Gray
-            )
+            Column {
+                Text(text = category.name, style = MaterialTheme.typography.h2)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.choose_difficulty),
+                    style = MaterialTheme.typography.body2,
+                    color = Color.Gray
+                )
 //            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DifficultyButton(
-                    difficulty = Difficulty.EASY,
-                    selectedDifficulty = selectedDifficulty
-                ) { selectedDifficulty = it }
-                DifficultyButton(
-                    difficulty = Difficulty.MEDIUM,
-                    selectedDifficulty = selectedDifficulty
-                ) { selectedDifficulty = it }
-                DifficultyButton(
-                    difficulty = Difficulty.HARD,
-                    selectedDifficulty = selectedDifficulty
-                ) { selectedDifficulty = it }
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    DifficultyButton(
+                        difficulty = Difficulty.EASY,
+                        selectedDifficulty = selectedDifficulty
+                    ) { selectedDifficulty = it }
+                    DifficultyButton(
+                        difficulty = Difficulty.MEDIUM,
+                        selectedDifficulty = selectedDifficulty
+                    ) { selectedDifficulty = it }
+                    DifficultyButton(
+                        difficulty = Difficulty.HARD,
+                        selectedDifficulty = selectedDifficulty
+                    ) { selectedDifficulty = it }
+                }
             }
+            Text(text = curScore)
         }
     }
 }

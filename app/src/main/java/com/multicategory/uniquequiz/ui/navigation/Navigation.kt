@@ -52,16 +52,20 @@ fun Navigation() {
                 difficulty = entry.arguments?.getString(DIFFICULTY) ?: Difficulty.EASY.value
             )
         }
-        composable(Screens.FinishScreen.withArgs("{$SCORE}"),
+        composable(Screens.FinishScreen.withArgs("{$SCORE}", "{$CATEGORY}"),
             arguments = listOf(
                 navArgument(SCORE) {
+                    type = NavType.StringType
+                },
+                navArgument(CATEGORY) {
                     type = NavType.StringType
                 }
             )
         ) { entry ->
             FinishScreen(
                 navController = navController,
-                score = entry.arguments?.getString(SCORE) ?: "0"
+                score = entry.arguments?.getString(SCORE),
+                category = entry.arguments?.getString(CATEGORY)
             )
         }
     }

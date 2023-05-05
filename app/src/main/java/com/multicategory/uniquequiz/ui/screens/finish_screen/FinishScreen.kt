@@ -9,13 +9,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.multicategory.uniquequiz.R
 import com.multicategory.uniquequiz.ui.navigation.Screens
+import com.multicategory.uniquequiz.ui.screens.category_screen.viewmodel.CategoryViewModel
 import com.multicategory.uniquequiz.ui.utils.AMOUNT_QUESTIONS
 
 @Composable
-fun FinishScreen(navController: NavController, score: String) {
+fun FinishScreen(navController: NavController, score: String?, category: String?) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -26,41 +29,51 @@ fun FinishScreen(navController: NavController, score: String) {
 //            verticalArrangement = Arrangement.spacedBy(10.dp),
 //            horizontalAlignment = Alignment.CenterHorizontally
 //        ) {
-            Text(
-                text = stringResource(R.string.your_score, score, AMOUNT_QUESTIONS),
-                style = MaterialTheme.typography.h1
-            )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Button(
-                    modifier = Modifier.padding(14.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    onClick = {
-                        navController.navigate(Screens.CategoryScreen.withArgs())
-                    }
-                ) {
-                    Text(
-                        modifier = Modifier.padding(12.dp),
-                        text = stringResource(R.string.main_menu),
-                        style = MaterialTheme.typography.h2,
-                        color = MaterialTheme.colors.onSurface
-                    )
-                }
+        val viewModel: FinishViewModel = hiltViewModel()
+        viewModel.saveCachedScore(
+            score = score ?: stringResource(R.string.zero),
+            key = category ?: ""
+        )
 
-                Button(
-                    modifier = Modifier.padding(14.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    onClick = {
-                        navController.popBackStack()
-                    }
-                ) {
-                    Text(
-                        modifier = Modifier.padding(12.dp),
-                        text = stringResource(R.string.play_again),
-                        style = MaterialTheme.typography.h2,
-                        color = MaterialTheme.colors.onSurface
-                    )
+        Text(
+            text = stringResource(
+                R.string.your_score,
+                score ?: stringResource(R.string.zero),
+                AMOUNT_QUESTIONS
+            ),
+            style = MaterialTheme.typography.h1
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Button(
+                modifier = Modifier.padding(14.dp),
+                shape = MaterialTheme.shapes.medium,
+                onClick = {
+                    navController.navigate(Screens.CategoryScreen.withArgs())
                 }
+            ) {
+                Text(
+                    modifier = Modifier.padding(12.dp),
+                    text = stringResource(R.string.main_menu),
+                    style = MaterialTheme.typography.h2,
+                    color = MaterialTheme.colors.onSurface
+                )
+            }
+
+            Button(
+                modifier = Modifier.padding(14.dp),
+                shape = MaterialTheme.shapes.medium,
+                onClick = {
+                    navController.popBackStack()
+                }
+            ) {
+                Text(
+                    modifier = Modifier.padding(12.dp),
+                    text = stringResource(R.string.play_again),
+                    style = MaterialTheme.typography.h2,
+                    color = MaterialTheme.colors.onSurface
+                )
             }
         }
     }
+}
 //}

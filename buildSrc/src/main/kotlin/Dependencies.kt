@@ -170,6 +170,10 @@ object Libs {
             const val roomPaging = "androidx.room:room-paging:$roomVersion"
         }
 
+        object DataStore {
+            const val datastore = "androidx.datastore:datastore-preferences:1.0.0"
+        }
+
         object Coroutines {
             private const val version = "1.6.3"
 

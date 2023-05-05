@@ -75,6 +75,7 @@ android {
 dependencies {
 
     implementation(Libs.Application.DependencyInjection.hilt)
+    implementation(Libs.Application.DataStore.datastore)
     kapt(Libs.Application.DependencyInjection.hilt_compiler)
 
     implementation(Libs.Application.Network.Retrofit.retrofit)

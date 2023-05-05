@@ -2,6 +2,7 @@ package com.multicategory.uniquequiz.ui.screens.category_screen.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.multicategory.uniquequiz.data.datastore.CategoryPreferencesRepository
 import com.multicategory.uniquequiz.data.network.model.TriviaCategory
 import com.multicategory.uniquequiz.data.network.repository.QuizNetworkRepository
 import com.multicategory.uniquequiz.data.network.states.ResponseStatus
@@ -9,11 +10,13 @@ import com.multicategory.uniquequiz.ui.screens.category_screen.states.CategorySt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class CategoryViewModel @Inject constructor(private val repository: QuizNetworkRepository) :
+class CategoryViewModel @Inject constructor(private val repository: QuizNetworkRepository,
+private val categoryPreferencesRepository: CategoryPreferencesRepository) :
     ViewModel() {
     private val _categoriesState: MutableStateFlow<CategoryState> =
         MutableStateFlow(CategoryState.Loading)
@@ -39,5 +42,11 @@ class CategoryViewModel @Inject constructor(private val repository: QuizNetworkR
                 }
             }
         }
+    }
+
+    fun getCachedScore(category : String) = flow {
+        val result = categoryPreferencesRepository.getScore(category)
+        val value = result.getOrNull()
+       emit(value)
     }
 }

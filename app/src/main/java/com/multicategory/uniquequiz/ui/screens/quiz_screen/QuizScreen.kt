@@ -40,7 +40,7 @@ fun QuizScreen(
 
     when (val state = viewModel.quizState.collectAsState().value) {
         is QuizState.Success -> {
-            QuizContent(quiz = state.data, viewModel = viewModel, navController = navController)
+            QuizContent(category = category, viewModel = viewModel, navController = navController)
         }
         is QuizState.Error -> {
 //            QuizContent(
@@ -62,18 +62,20 @@ fun QuizScreen(
 }
 
 @Composable
-fun QuizContent(quiz: QuizModel, viewModel: QuizViewModel, navController: NavController) {
+fun QuizContent(category: String, viewModel: QuizViewModel, navController: NavController) {
 //    var currentQuestionNumber = viewModel.counter
     QuizItem(
         viewModel = viewModel,
-        navController
+        navController,
+        category
     )
 }
 
 @Composable
 fun QuizItem(
     viewModel: QuizViewModel,
-    navController: NavController
+    navController: NavController,
+    category:String
 ) {
     val questionState = viewModel.questionState.collectAsState().value
     Column(
@@ -157,7 +159,7 @@ fun QuizItem(
                     shape = MaterialTheme.shapes.medium,
                     onClick = {
                         if (questionState.finished) {
-                            navController.navigate(Screens.FinishScreen.withArgs(questionState.correctAnswers.toString()))
+                            navController.navigate(Screens.FinishScreen.withArgs(questionState.correctAnswers.toString(), category))
                             viewModel.resetQuiz()
                         } else {
                             viewModel.nextQuestion()
